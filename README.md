@@ -19,7 +19,7 @@ The first version uses the MySQL service already present in Compose. Vitess is o
 
 1. **Modular monolith:** one Laravel application and deployment, organized into purpose-specific modules with `nwidart/laravel-modules`.
 2. **RabbitMQ module boundary:** a module does not call another module's services or query another module's tables. It publishes or consumes a message instead.
-3. **Own your data:** Orders owns order tables in MySQL; BulkImports owns import-run state; Analytics owns ClickHouse tables; AdminDashboard owns its read projection.
+3. **Own your data:** Orders owns order tables in MySQL; BulkImports owns import-run state; Analytics owns ClickHouse tables; Dashboard owns its read projection.
 4. **Keep messages small:** messages carry IDs, object keys, checksums, counts, and status. File contents remain in MinIO.
 5. **At-least-once-safe consumers:** assume a message or chunk can be delivered again. Consumers must be idempotent.
 6. **Chunk-level progress:** the import is one user-visible operation, but persistence and recovery happen per chunk. Do not promise one transaction across the entire file.
@@ -30,7 +30,7 @@ The first version uses the MySQL service already present in Compose. Vitess is o
 
 | Module | Single purpose | Owns / stores | Communicates through RabbitMQ |
 |---|---|---|---|
-| **AdminDashboard** | Let an administrator start imports and inspect their progress and results. | Filament panel and a dashboard status projection. | Publishes the start command; consumes import status and progress events for its projection. |
+| **Dashboard** | Let an administrator start imports and inspect their progress and results. | Filament panel and a dashboard status projection. | Publishes the start command; consumes import status and progress events for its projection. |
 | **BulkImports** | Manage the lifecycle of a bulk import and coordinate chunks. | `import_runs`, `import_chunks`, source-file metadata, and retry state in MySQL. | Accepts start commands; requests order-chunk processing; consumes per-chunk results; publishes progress and terminal status. |
 | **Orders** | Apply order rules and persist accepted orders. | Order tables and transactional outbox in MySQL. | Consumes chunk requests; publishes committed/rejected counts and a pointer to accepted rows. |
 | **Analytics** | Ingest accepted order data into ClickHouse and expose analytical read models. | ClickHouse tables for imported order facts and import metrics. | Consumes committed-chunk messages; publishes analytics ingestion status. |
@@ -40,10 +40,43 @@ The first version uses the MySQL service already present in Compose. Vitess is o
 
 ## End-to-end flow
 
+The CSV is the source file, not the message sent through RabbitMQ. MinIO stores the
+original file and bounded chunk files; RabbitMQ carries small messages that identify
+those files. The orders are ultimately stored in MySQL. ClickHouse is an asynchronous
+analytics destination, not a substitute for the order database.
+
+1. **Upload:** The administrator selects a CSV in Filament. The Dashboard assigns an
+   import ID, stores the original CSV in MinIO, and publishes an
+   `ImportRequested` message with the import ID and object key. The browser request
+   finishes after the import is queued; it does not wait for all rows to be processed.
+2. **Prepare:** `BulkImports` consumes the request, creates the import run, and reads
+   the CSV incrementally. It checks the file structure and splits its rows into
+   bounded chunks without loading the million-row file into memory.
+3. **Dispatch:** `BulkImports` stores each chunk as an object in MinIO, creates its
+   chunk record, and publishes an `OrderChunkRequested` message with the import ID,
+   chunk ID, and object key. RabbitMQ carries the reference rather than the whole CSV
+   or an unbounded payload.
+4. **Import orders:** `Orders` consumes each chunk request, reads that chunk from
+   MinIO, validates the rows, and writes accepted orders to MySQL in a bounded
+   transaction. It records rejected rows with their source row numbers and reasons.
+   Chunk-level commits let the system recover without making the entire file one
+   enormous transaction.
+5. **Report outcomes:** After a chunk is durably handled, `Orders` publishes its
+   result through an outbox. `BulkImports` consumes the result and updates the import
+   counts and progress. Rejected-row details can be stored in MinIO for download.
+6. **Update analytics:** A separate Analytics queue also receives the committed
+   chunk event. `Analytics` reads the accepted-row data from MinIO and bulk-inserts it
+   into ClickHouse. It reports its own per-chunk status.
+7. **Show completion:** When all order chunks have reported their outcomes,
+   `BulkImports` marks the import `completed` or `completed_with_errors` and publishes
+   the final status. The Dashboard consumes status events and shows the counts and
+   any rejection-report link. ClickHouse may still be catching up; analytics freshness
+   is displayed separately and does not block the order import from completing.
+
 ```mermaid
 sequenceDiagram
     actor Admin
-    participant UI as AdminDashboard / Filament
+    participant UI as Dashboard / Filament
     participant Q as RabbitMQ
     participant B as BulkImports
     participant S as MinIO
@@ -52,28 +85,33 @@ sequenceDiagram
     participant A as Analytics
     participant CH as ClickHouse
 
-    Admin->>UI: Upload CSV and start import
-    UI->>S: Store original file
-    UI->>Q: BulkImportRequested(import_id, object_key, checksum)
-    Q->>B: Deliver request
+    Admin->>UI: Select and upload CSV
+    UI->>S: Store original CSV
+    UI->>Q: ImportRequested(import_id, source_object_key)
+    UI-->>Admin: Show queued import
+    Q->>B: Deliver import request
     B->>DB: Create import run
-    B->>S: Read source and write chunk objects
-    B->>Q: ImportChunkRequested(import_id, chunk_id, object_key)
+    B->>S: Stream source and store bounded chunk objects
+    B->>Q: OrderChunkRequested(import_id, chunk_id, object_key)
     Q->>O: Deliver chunk request
-    O->>S: Read chunk
-    O->>O: Validate rows and build accepted/error outputs
-    O->>S: Store accepted rows and rejected-row report
-    O->>DB: Bulk write accepted orders and outbox record
-    O->>Q: Outbox relay publishes OrdersChunkCommitted
-    Q->>B: Deliver chunk result
-    Q->>A: Deliver committed chunk
-    A->>S: Read accepted-row object
-    A->>CH: Insert accepted rows in a bulk insert
-    A->>Q: AnalyticsChunkLoaded(import_id, chunk_id, counts)
-    Q->>B: Deliver analytics result
-    B->>Q: ImportProgressed / ImportCompleted
+    O->>S: Read chunk object
+    O->>O: Validate rows and separate accepted and rejected rows
+    O->>S: Store accepted-row data and rejected-row details
+    O->>DB: Commit accepted orders and outbox record
+    O->>Q: Outbox publishes OrdersChunkCommitted
+    par Import progress
+        Q->>B: Deliver committed chunk result
+        B->>DB: Update chunk state and import counts
+    and Analytics ingestion
+        Q->>A: Deliver committed chunk event
+        A->>S: Read accepted-row object
+        A->>CH: Bulk-insert accepted rows
+        A->>Q: AnalyticsChunkLoaded(import_id, chunk_id, counts)
+        Q->>B: Record analytics status separately
+    end
+    B->>Q: ImportProgressed / ImportCompleted after all order chunks finish
     Q->>UI: Update dashboard projection
-    UI-->>Admin: Show result and error-report link
+    UI-->>Admin: Show order counts, status, and report link
 ```
 
 ### Example message payloads
@@ -117,10 +155,10 @@ Tasks are ordered by dependency. Each task should be reviewable before moving to
 
 ### Epic 1 — Define contracts and module boundaries
 
-1. **Create module skeletons** for AdminDashboard, BulkImports, Orders, and Analytics using the installed modules package.
+1. **Use the existing Dashboard module and create skeletons** for BulkImports, Orders, and Analytics using the installed modules package.
    - **Acceptance:** each module has its own provider and expected folder structure; no business code lives in the default `app/` namespace except shared application bootstrap code.
 2. **Define ownership and data boundaries.**
-   - **Acceptance:** Orders is the only module that reads/writes order tables; BulkImports owns import state; Analytics owns ClickHouse tables; AdminDashboard reads its projection.
+   - **Acceptance:** Orders is the only module that reads/writes order tables; BulkImports owns import state; Analytics owns ClickHouse tables; Dashboard reads its projection.
 3. **Define the message envelope and versioned contracts.**
    - **Acceptance:** every message has a message ID, type/version, correlation ID, timestamp, and a documented data payload; no contract contains an entire CSV or unbounded row list.
 4. **Define retry and duplicate rules.**
