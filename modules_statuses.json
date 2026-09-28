@@ -1,5 +1,6 @@
 {
     "Dashboard": true,
     "BulkImports": true,
-    "Orders": true
+    "Orders": true,
+    "Analytics": true
 }
