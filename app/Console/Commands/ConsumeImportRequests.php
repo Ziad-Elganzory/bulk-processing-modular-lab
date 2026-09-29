@@ -7,24 +7,23 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use LogicException;
-use Modules\Orders\Handlers\DeadLetteredOrderChunkHandler;
+use Modules\BulkImports\Handlers\ImportRequestedHandler;
 use PhpAmqpLib\Message\AMQPMessage;
-use PhpAmqpLib\Wire\AMQPTable;
 use Throwable;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\Connectors\RabbitMQConnector;
 use VladimirYuldashev\LaravelQueueRabbitMQ\Queue\RabbitMQQueue;
 
-#[Signature('orders:consume-failed-chunks')]
-#[Description('Consume failed order chunk requests from RabbitMQ.')]
-class ConsumeFailedOrderChunks extends Command
+#[Signature('bulk-imports:consume-import-requests')]
+#[Description('Consume bulk import requests from RabbitMQ.')]
+class ConsumeImportRequests extends Command
 {
-    protected $signature = 'orders:consume-failed-chunks';
+    protected $signature = 'bulk-imports:consume-import-requests';
 
-    protected $description = 'Consume failed order chunk requests from RabbitMQ.';
+    protected $description = 'Consume bulk import requests from RabbitMQ.';
 
     public function handle(
         RabbitMQConnector $connector,
-        DeadLetteredOrderChunkHandler $handler,
+        ImportRequestedHandler $handler,
     ): int {
         $rabbitMq = $connector->connect(config('queue.connections.rabbitmq'));
 
@@ -32,33 +31,28 @@ class ConsumeFailedOrderChunks extends Command
             throw new LogicException('The RabbitMQ connection did not return the expected queue driver.');
         }
 
-        $topology = config('rabbitmq-topology');
-        $deliveryLimit = (int) (
-            $topology['queues']['orders.order-chunks']['arguments']['x-delivery-limit'] ?? 1
-        );
-
         $channel = $rabbitMq->getChannel();
 
         try {
             $channel->basic_qos(0, 1, false);
 
             $channel->basic_consume(
-                'orders.order-chunks.failed',
+                'bulk-imports.import-requests',
                 '',
                 false,
                 false,
                 false,
                 false,
-                function (AMQPMessage $message) use ($channel, $handler, $deliveryLimit): void {
+                function (AMQPMessage $message) use ($channel, $handler): void {
                     try {
                         $envelope = MessageEnvelope::fromJson($message->getBody());
-                        $attempts = $this->deliveryAttempts($message, $deliveryLimit);
+                        $handler->handle($envelope);
 
-                        $handler->handle($envelope, $attempts);
-                        $this->info("Processed {$message->getDeliveryTag()} ({$message->getRoutingKey()}).");
+                        $this->info(
+                            "Processed {$message->getDeliveryTag()} ({$message->getRoutingKey()}).",
+                        );
                     } catch (Throwable $exception) {
                         report($exception);
-
                         $channel->basic_reject($message->getDeliveryTag(), true);
                         $this->error("Failed to process {$message->getDeliveryTag()} ({$message->getRoutingKey()}): {$exception->getMessage()}");
                         return;
@@ -68,7 +62,7 @@ class ConsumeFailedOrderChunks extends Command
                 },
             );
 
-            $this->info('Listening for dead-lettered order chunks. Press Ctrl+C to stop.');
+            $this->info('Listening for bulk import requests. Press Ctrl+C to stop.');
 
             while ($channel->is_consuming()) {
                 $channel->wait();
@@ -78,23 +72,5 @@ class ConsumeFailedOrderChunks extends Command
         }
 
         return self::SUCCESS;
-    }
-
-    private function deliveryAttempts(AMQPMessage $message, int $fallback): int
-    {
-        $applicationHeaders = $message->get_properties()['application_headers'] ?? null;
-
-        if (! $applicationHeaders instanceof AMQPTable) {
-            return max($fallback, 1);
-        }
-
-        $headers = $applicationHeaders->getNativeData();
-        $deliveryCount = $headers['x-delivery-count'] ?? null;
-
-        if (! \is_numeric($deliveryCount)) {
-            return max($fallback, 1);
-        }
-
-        return max((int) $deliveryCount, 1);
     }
 }

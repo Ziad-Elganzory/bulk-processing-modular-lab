@@ -48,14 +48,14 @@ class ConsumeOrderChunks extends Command
                     try {
                         $envelope = MessageEnvelope::fromJson($message->getBody());
                         $handler->handle($envelope);
-                        $this->info("Processed {$envelope->messageId} ({$envelope->message->messageType()}).");
+                        $this->info("Processed {$message->getDeliveryTag()} ({$message->getRoutingKey()}).");
                     } catch (Throwable $exception) {
                         report($exception);
 
                         // Requeue this delivery. The quorum queue's delivery limit
                         // and dead-letter exchange handle repeated failures.
                         $channel->basic_reject($message->getDeliveryTag(), true);
-
+                        $this->error("Failed to process {$message->getDeliveryTag()} ({$message->getRoutingKey()}): {$exception->getMessage()}");
                         return;
                     }
 

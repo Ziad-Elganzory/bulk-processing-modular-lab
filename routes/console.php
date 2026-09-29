@@ -11,3 +11,7 @@ Artisan::command('inspire', function () {
 Schedule::command('orders:outbox:publish')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('bulk-imports:outbox:publish')
+    ->everyMinute()
+    ->withoutOverlapping();
