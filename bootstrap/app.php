@@ -2,6 +2,7 @@
 
 use App\Console\Commands\ConsumeOrderChunks;
 use App\Console\Commands\DeclareRabbitMqTopology;
+use App\Console\Commands\PublishOrdersOutbox;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,5 +25,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         DeclareRabbitMqTopology::class,
         ConsumeOrderChunks::class,
+        PublishOrdersOutbox::class,
     ])
     ->create();
