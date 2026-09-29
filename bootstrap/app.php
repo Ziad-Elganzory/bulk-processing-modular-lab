@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ConsumeFailedOrderChunks;
 use App\Console\Commands\ConsumeOrderChunks;
 use App\Console\Commands\DeclareRabbitMqTopology;
 use App\Console\Commands\PublishOrdersOutbox;
@@ -26,5 +27,6 @@ return Application::configure(basePath: dirname(__DIR__))
         DeclareRabbitMqTopology::class,
         ConsumeOrderChunks::class,
         PublishOrdersOutbox::class,
+        ConsumeFailedOrderChunks::class,
     ])
     ->create();
