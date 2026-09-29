@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Orders\App\Handlers;
+namespace Modules\Orders\Handlers;
 
 use App\Messaging\Contracts\MessageEnvelope;
 use App\Messaging\Contracts\V1\OrderChunkRequested;

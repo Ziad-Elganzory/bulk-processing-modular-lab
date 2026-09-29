@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\ConsumeOrderChunks;
 use App\Console\Commands\DeclareRabbitMqTopology;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,5 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withCommands([
         DeclareRabbitMqTopology::class,
+        ConsumeOrderChunks::class,
     ])
     ->create();
