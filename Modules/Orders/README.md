@@ -3,6 +3,7 @@
 This document explains the current Orders module implementation: what it owns, how a chunk moves through it, where each part of the code lives, and how to review or run the flow.
 
 See [FUTURE_WORK.md](FUTURE_WORK.md) for deferred hardening items and their completion criteria.
+Use [SMOKE_TEST.md](SMOKE_TEST.md) to manually verify the accepted/rejected-row path and the DLQ path.
 
 ## Responsibility and boundary
 
