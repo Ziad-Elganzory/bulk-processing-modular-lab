@@ -14,14 +14,12 @@ class DeclareRabbitMqTopology extends Command
     protected $signature = 'rabbitmq:topology:declare';
 
     protected $description = 'Declare the application RabbitMQ topology.';
-    /**
-     * Execute the console command.
-     */
+
     public function handle(RabbitMQConnector $connector): int
     {
         $topology = config('rabbitmq-topology');
         $rabbitMq = $connector->connect(config('queue.connections.rabbitmq'));
-    
+
         try {
             foreach ($topology['exchanges'] as $name => $exchange) {
                 $rabbitMq->declareExchange(
@@ -31,12 +29,14 @@ class DeclareRabbitMqTopology extends Command
                     $exchange['auto_delete'],
                 );
             }
-    
+
             foreach ($topology['queues'] as $name => $queue) {
-                $arguments = $queue['type'] === 'quorum'
-                    ? ['x-queue-type' => 'quorum']
-                    : [];
-    
+                $arguments = $queue['arguments'] ?? [];
+
+                if ($queue['type'] === 'quorum') {
+                    $arguments['x-queue-type'] = 'quorum';
+                }
+
                 $rabbitMq->declareQueue(
                     $name,
                     $queue['durable'],
@@ -44,7 +44,7 @@ class DeclareRabbitMqTopology extends Command
                     $arguments,
                 );
             }
-    
+
             foreach ($topology['bindings'] as $binding) {
                 $rabbitMq->bindQueue(
                     $binding['queue'],
@@ -52,9 +52,9 @@ class DeclareRabbitMqTopology extends Command
                     $binding['routing_key'],
                 );
             }
-    
+
             $this->info('RabbitMQ topology declared successfully.');
-    
+
             return self::SUCCESS;
         } finally {
             $rabbitMq->close();
