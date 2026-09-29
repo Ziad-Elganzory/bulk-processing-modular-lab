@@ -10,7 +10,7 @@ The module does not receive the administrator's original large CSV, split it int
 
 ## Message and RabbitMQ topology
 
-The input contract is `orders.chunk.requested.v1`, represented by `OrderChunkRequested` inside the shared `MessageEnvelope`. The envelope supplies message ID and correlation ID; the contract supplies the import ID, chunk ID, MinIO object key, first source row number, expected data-row count, and checksum.
+The input contract is `orders.chunk.requested.v1`, represented by `OrderChunkRequested` inside the shared `MessageEnvelope`. The envelope supplies message ID and correlation ID; the contract supplies the import ID, chunk ID, MinIO object key, first source row number, and expected data-row count.
 
 The topology is declared from `config/rabbitmq-topology.php` by `rabbitmq:topology:declare`:
 
@@ -146,9 +146,7 @@ The two consumer commands are long-running processes; run them in separate termi
 
 ## Current limitations to remember while reviewing
 
-- `OrderChunkRequested` carries a checksum, but `OrderChunkProcessor` does not currently calculate or compare it with the object contents.
 - The original processing exception is reported to Laravel logs by the consumer. The DLQ handler currently records the generic `delivery_limit_exceeded` code/message, not the original exception text.
 - CSV rows are read as a stream, but accepted/rejected row data is accumulated in memory for one chunk before database insertion and output generation. Keep chunks bounded; this implementation does not load the million-row source file as one chunk.
 - The observer queue is for development inspection. It is not the future Analytics or BulkImports consumer queue. Each real subscriber should get its own queue and binding so RabbitMQ delivers an event copy to every interested module.
 - The Orders module consumes chunk requests only. Uploading the source file, splitting it, tracking import-wide progress, and analytics loading remain outside this module.
-

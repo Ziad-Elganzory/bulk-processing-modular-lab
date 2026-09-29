@@ -133,7 +133,7 @@ Messages should be JSON-compatible, versioned contracts rather than large serial
 }
 ```
 
-A chunk message should similarly carry `import_id`, `chunk_id`, `object_key`, `row_start`, `row_count`, and a checksum—not every order row.
+A chunk message should similarly carry `import_id`, `chunk_id`, `object_key`, `row_start`, and `row_count`—not every order row.
 
 ## Import-run lifecycle
 
@@ -187,7 +187,7 @@ Tasks are ordered by dependency. Each task should be reviewable before moving to
 11. **Validate the source-file structure.**
     - **Acceptance:** missing/unknown headers, malformed files, and unsupported formats fail before row jobs are created, with a visible reason.
 12. **Split the source into bounded chunk objects.**
-    - **Acceptance:** chunking uses bounded memory; chunk metadata includes row range, count, and checksum; the original file remains available.
+    - **Acceptance:** chunking uses bounded memory; chunk metadata includes row range and count; the original file remains available.
 13. **Create chunk records and publish chunk requests.**
     - **Acceptance:** each message references one persisted chunk; publishing can be retried without creating duplicate logical chunks.
 
