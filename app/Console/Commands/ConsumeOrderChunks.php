@@ -48,6 +48,7 @@ class ConsumeOrderChunks extends Command
                     try {
                         $envelope = MessageEnvelope::fromJson($message->getBody());
                         $handler->handle($envelope);
+                        $this->info("Processed {$envelope->messageId} ({$envelope->message->messageType()}).");
                     } catch (Throwable $exception) {
                         report($exception);
 
