@@ -45,6 +45,12 @@ return [
             'durable' => true,
             'auto_delete' => false,
         ],
+        // For Inspecting the events that are being published to RabbitMQ.
+        'orders.events.observer' => [
+            'type' => 'quorum',
+            'durable' => true,
+            'auto_delete' => false,
+        ],
     ],
 
     'bindings' => [
@@ -62,6 +68,12 @@ return [
             'queue' => 'orders.order-chunks.failed.processing-errors',
             'exchange' => 'bulk-processing.dead-letters',
             'routing_key' => 'orders.order-chunks.failed.processing-errors',
+        ],
+        // For Inspecting the events that are being published to RabbitMQ.
+        [
+            'queue' => 'orders.events.observer',
+            'exchange' => 'bulk-processing.events',
+            'routing_key' => 'orders.chunk.#',
         ],
     ],
 ];
