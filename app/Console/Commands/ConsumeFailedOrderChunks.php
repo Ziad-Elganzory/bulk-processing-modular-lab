@@ -55,6 +55,7 @@ class ConsumeFailedOrderChunks extends Command
                         $attempts = $this->deliveryAttempts($message, $deliveryLimit);
 
                         $handler->handle($envelope, $attempts);
+                        $this->info("Processed {$envelope->messageId} ({$envelope->message->messageType()}).");
                     } catch (Throwable $exception) {
                         report($exception);
 
