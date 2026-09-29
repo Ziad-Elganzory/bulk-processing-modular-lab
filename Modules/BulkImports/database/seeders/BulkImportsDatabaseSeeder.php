@@ -11,6 +11,9 @@ class BulkImportsDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            ImportRunSeeder::class,
+            ImportChunkSeeder::class,
+        ]);
     }
 }
