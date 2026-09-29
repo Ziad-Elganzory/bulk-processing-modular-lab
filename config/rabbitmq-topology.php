@@ -34,6 +34,16 @@ return [
             'type' => 'quorum',
             'durable' => true,
             'auto_delete' => false,
+            'arguments' => [
+                'x-delivery-limit' => 3,
+                'x-dead-letter-exchange' => 'bulk-processing.dead-letters',
+                'x-dead-letter-routing-key' => 'orders.order-chunks.failed.processing-errors',
+            ],
+        ],
+        'orders.order-chunks.failed.processing-errors' => [
+            'type' => 'quorum',
+            'durable' => true,
+            'auto_delete' => false,
         ],
     ],
 
@@ -47,6 +57,11 @@ return [
             'queue' => 'orders.order-chunks.failed',
             'exchange' => 'bulk-processing.dead-letters',
             'routing_key' => 'orders.order-chunks.failed',
+        ],
+        [
+            'queue' => 'orders.order-chunks.failed.processing-errors',
+            'exchange' => 'bulk-processing.dead-letters',
+            'routing_key' => 'orders.order-chunks.failed.processing-errors',
         ],
     ],
 ];

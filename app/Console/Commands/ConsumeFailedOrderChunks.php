@@ -58,9 +58,7 @@ class ConsumeFailedOrderChunks extends Command
                     } catch (Throwable $exception) {
                         report($exception);
 
-                        // Keep the message available if recording its failure did not succeed.
-                        $channel->basic_nack($message->getDeliveryTag(), false, true);
-
+                        $channel->basic_reject($message->getDeliveryTag(), true);
                         return;
                     }
 
