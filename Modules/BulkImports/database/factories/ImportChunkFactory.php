@@ -3,6 +3,7 @@
 namespace Modules\BulkImports\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Modules\BulkImports\Models\ImportChunk;
 use Modules\BulkImports\Models\ImportRun;
 
 class ImportChunkFactory extends Factory
@@ -10,7 +11,7 @@ class ImportChunkFactory extends Factory
     /**
      * The name of the factory's corresponding model.
      */
-    protected $model = \Modules\BulkImports\Models\ImportChunk::class;
+    protected $model = ImportChunk::class;
 
     /**
      * Define the model's default state.
@@ -18,7 +19,7 @@ class ImportChunkFactory extends Factory
     public function definition(): array
     {
         $chunkId = 'chunk-'.fake()->unique()->numerify('######');
-    
+
         return [
             'import_run_id' => ImportRun::factory(),
             'chunk_id' => $chunkId,
@@ -32,4 +33,3 @@ class ImportChunkFactory extends Factory
         ];
     }
 }
-

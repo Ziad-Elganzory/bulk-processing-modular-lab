@@ -28,7 +28,7 @@ return new class extends Migration
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
-        
+
             $table->unique(
                 ['import_id', 'chunk_id'],
                 'order_chunk_runs_import_chunk_unique',

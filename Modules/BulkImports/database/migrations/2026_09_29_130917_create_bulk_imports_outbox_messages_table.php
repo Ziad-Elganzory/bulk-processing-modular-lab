@@ -25,7 +25,7 @@ return new class extends Migration
             $table->timestamp('published_at')->nullable();
             $table->text('last_error')->nullable();
             $table->timestamps();
-        
+
             $table->index(
                 ['status', 'available_at'],
                 'bulk_imports_outbox_dispatch_index',

@@ -2,8 +2,9 @@
 
 namespace Modules\BulkImports\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\BulkImports\Database\Factories\BulkImportsInboxMessageFactory;
 
 class BulkImportsInboxMessage extends Model

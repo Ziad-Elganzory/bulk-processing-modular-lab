@@ -17,21 +17,21 @@ return new class extends Migration
             $table->string('source_object_key');
             $table->string('requested_by', 100);
             $table->string('status', 32)->default('queued');
-    
+
             $table->unsignedBigInteger('total_rows')->nullable();
             $table->unsignedBigInteger('processed_rows')->default(0);
             $table->unsignedBigInteger('accepted_rows')->default(0);
             $table->unsignedBigInteger('rejected_rows')->default(0);
-    
+
             $table->unsignedInteger('total_chunks')->nullable();
             $table->unsignedInteger('processed_chunks')->default(0);
-    
+
             $table->string('failure_code', 100)->nullable();
             $table->text('failure_message')->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
             $table->timestamps();
-    
+
             $table->index(['status', 'created_at']);
         });
     }

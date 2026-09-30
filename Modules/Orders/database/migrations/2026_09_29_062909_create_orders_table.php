@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->string('order_id')->unique();
-            $table->string('customer_id',100);
-            $table->decimal('amount',12,2);
-            $table->char('currency',3);
+            $table->string('customer_id', 100);
+            $table->decimal('amount', 12, 2);
+            $table->char('currency', 3);
             $table->dateTime('order_date');
             $table->timestamps();
         });

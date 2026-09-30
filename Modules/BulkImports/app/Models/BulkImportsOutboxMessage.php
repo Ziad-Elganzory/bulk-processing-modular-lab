@@ -2,13 +2,15 @@
 
 namespace Modules\BulkImports\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
 // use Modules\BulkImports\Database\Factories\BulkImportsOutboxMessageFactory;
 
 class BulkImportsOutboxMessage extends Model
 {
     use HasFactory;
+
     protected $table = 'bulk_imports_outbox_messages';
 
     protected $fillable = [
@@ -24,7 +26,7 @@ class BulkImportsOutboxMessage extends Model
         'published_at',
         'last_error',
     ];
-    
+
     protected function casts(): array
     {
         return [

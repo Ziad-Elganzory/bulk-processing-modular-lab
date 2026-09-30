@@ -55,6 +55,7 @@ class ConsumeImportRequests extends Command
                         report($exception);
                         $channel->basic_reject($message->getDeliveryTag(), true);
                         $this->error("Failed to process {$message->getDeliveryTag()} ({$message->getRoutingKey()}): {$exception->getMessage()}");
+
                         return;
                     }
 

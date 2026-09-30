@@ -4,13 +4,14 @@ namespace Modules\BulkImports\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
+use Modules\BulkImports\Models\ImportRun;
 
 class ImportRunFactory extends Factory
 {
     /**
      * The name of the factory's corresponding model.
      */
-    protected $model = \Modules\BulkImports\Models\ImportRun::class;
+    protected $model = ImportRun::class;
 
     /**
      * Define the model's default state.
@@ -18,7 +19,7 @@ class ImportRunFactory extends Factory
     public function definition(): array
     {
         $importId = (string) Str::uuid();
-    
+
         return [
             'import_id' => $importId,
             'source_object_key' => "imports/{$importId}/source.csv",
@@ -33,4 +34,3 @@ class ImportRunFactory extends Factory
         ];
     }
 }
-

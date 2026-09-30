@@ -15,7 +15,7 @@ class ImportChunkSeeder extends Seeder
         $run = ImportRun::query()
             ->where('import_id', 'demo-import-001')
             ->firstOrFail();
-    
+
         $run->chunks()->updateOrCreate(
             ['chunk_id' => 'chunk-001'],
             [
@@ -26,7 +26,7 @@ class ImportChunkSeeder extends Seeder
                 'attempts' => 0,
             ],
         );
-    
+
         $run->chunks()->updateOrCreate(
             ['chunk_id' => 'chunk-002'],
             [

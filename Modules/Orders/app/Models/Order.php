@@ -4,7 +4,6 @@ namespace Modules\Orders\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
 use Modules\Orders\Database\Factories\OrderFactory;
 
 class Order extends Model
