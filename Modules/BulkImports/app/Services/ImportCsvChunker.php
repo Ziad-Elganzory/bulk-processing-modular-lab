@@ -15,6 +15,10 @@ use RuntimeException;
 
 class ImportCsvChunker
 {
+    public function __construct(
+        private readonly ImportRunFinalizer $finalizer,
+    ) {}
+
     public function process(int $importRunId): void
     {
         $importRun = ImportRun::query()->findOrFail($importRunId);
@@ -43,23 +47,21 @@ class ImportCsvChunker
                 $expectedHeaders,
             );
         } catch (InvalidArgumentException $exception) {
-            $importRun->forceFill([
-                'status' => 'failed',
-                'failure_code' => 'invalid_source_csv',
-                'failure_message' => $exception->getMessage(),
-                'finished_at' => now(),
-            ])->save();
+            $this->finalizer->failSource(
+                $importRun,
+                'invalid_source_csv',
+                $exception->getMessage(),
+            );
 
             return;
         }
 
         if ($totalRows === 0) {
-            $importRun->forceFill([
-                'status' => 'failed',
-                'failure_code' => 'invalid_source_csv',
-                'failure_message' => 'The source CSV contains no data rows.',
-                'finished_at' => now(),
-            ])->save();
+            $this->finalizer->failSource(
+                $importRun,
+                'invalid_source_csv',
+                'The source CSV contains no data rows.',
+            );
 
             return;
         }

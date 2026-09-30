@@ -5,6 +5,7 @@ namespace Modules\BulkImports\Services;
 use App\Messaging\Contracts\MessageEnvelope;
 use App\Messaging\Contracts\V1\ImportCompleted;
 use DateTimeImmutable;
+use Illuminate\Support\Facades\DB;
 use Modules\BulkImports\Models\BulkImportsOutboxMessage;
 use Modules\BulkImports\Models\ImportRun;
 use RuntimeException;
@@ -68,6 +69,18 @@ class ImportRunFinalizer
             'finished_at' => $now,
         ])->save();
 
+        $this->recordCompletionOutbox(
+            $importRun,
+            $status,
+            $rejectedReportObjectKey,
+        );
+    }
+
+    private function recordCompletionOutbox(
+        ImportRun $importRun,
+        string $status,
+        ?string $rejectedReportObjectKey,
+    ): void {
         $completed = new ImportCompleted(
             importId: $importRun->import_id,
             status: $status,
@@ -97,8 +110,43 @@ class ImportRunFinalizer
                 'payload' => $envelope->toArray(),
                 'status' => 'pending',
                 'attempts' => 0,
-                'available_at' => $now,
+                'available_at' => now(),
             ],
         );
+    }
+
+    public function failSource(
+        ImportRun $importRun,
+        string $failureCode,
+        string $failureMessage,
+    ): void {
+        DB::transaction(function () use ($importRun, $failureCode, $failureMessage): void {
+            $lockedImportRun = ImportRun::query()
+                ->whereKey($importRun->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (in_array($lockedImportRun->status, [
+                'completed',
+                'completed_with_errors',
+                'failed',
+                'cancelled',
+            ], true)) {
+                return;
+            }
+
+            $lockedImportRun->forceFill([
+                'status' => 'failed',
+                'failure_code' => $failureCode,
+                'failure_message' => $failureMessage,
+                'finished_at' => now(),
+            ])->save();
+
+            $this->recordCompletionOutbox(
+                $lockedImportRun,
+                'failed',
+                null,
+            );
+        });
     }
 }
