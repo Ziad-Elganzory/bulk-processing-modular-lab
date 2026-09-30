@@ -2,15 +2,15 @@
 
 namespace Modules\BulkImports\Services;
 
-use Illuminate\Support\Facades\Storage;
-use InvalidArgumentException;
-use Modules\BulkImports\Models\ImportChunk;
-use Modules\BulkImports\Models\ImportRun;
 use App\Messaging\Contracts\MessageEnvelope;
 use App\Messaging\Contracts\V1\OrderChunkRequested;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use Modules\BulkImports\Models\BulkImportsOutboxMessage;
+use Modules\BulkImports\Models\ImportChunk;
+use Modules\BulkImports\Models\ImportRun;
 use RuntimeException;
 
 class ImportCsvChunker
@@ -64,20 +64,26 @@ class ImportCsvChunker
             return;
         }
 
-        $totalChunks = $this->writeChunks(
-            $importRun,
-            $expectedHeaders,
-            $chunkSize,
-        );
+        $totalChunks = (int) ceil($totalRows / $chunkSize);
 
         $importRun->forceFill([
             'total_rows' => $totalRows,
             'total_chunks' => $totalChunks,
         ])->save();
+
+        $writtenChunks = $this->writeChunks(
+            $importRun,
+            $expectedHeaders,
+            $chunkSize,
+        );
+
+        if ($writtenChunks !== $totalChunks) {
+            throw new RuntimeException('The number of written chunks did not match the expected total.');
+        }
     }
 
     /**
-     * @param list<string> $expectedHeaders
+     * @param  list<string>  $expectedHeaders
      */
     private function validateSource(string $objectKey, array $expectedHeaders): int
     {
@@ -123,7 +129,7 @@ class ImportCsvChunker
     }
 
     /**
-     * @param list<int|string|null> $headers
+     * @param  list<int|string|null>  $headers
      * @return list<string>
      */
     private function normalizeHeaders(array $headers): array
@@ -141,7 +147,7 @@ class ImportCsvChunker
     }
 
     /**
-     * @param list<string> $headers
+     * @param  list<string>  $headers
      */
     private function writeChunks(
         ImportRun $importRun,
@@ -239,7 +245,7 @@ class ImportCsvChunker
     }
 
     /**
-     * @param list<string> $headers
+     * @param  list<string>  $headers
      * @return resource
      */
     private function newChunkStream(array $headers)
@@ -260,7 +266,7 @@ class ImportCsvChunker
     }
 
     /**
-     * @param resource $stream
+     * @param  resource  $stream
      */
     private function storeChunk(
         ImportRun $importRun,
@@ -304,7 +310,7 @@ class ImportCsvChunker
                     'attempts' => 0,
                 ],
             );
-        
+
             $message = new OrderChunkRequested(
                 importId: $importRun->import_id,
                 chunkId: $chunkId,
@@ -312,19 +318,19 @@ class ImportCsvChunker
                 rowStart: $rowStart,
                 rowCount: $rowCount,
             );
-        
+
             $messageId = 'bulk-imports:orders-chunk:'.hash(
                 'sha256',
                 $importRun->import_id.':'.$chunkId,
             );
-        
+
             $envelope = new MessageEnvelope(
                 messageId: $messageId,
                 correlationId: $importRun->import_id,
-                occurredAt: new DateTimeImmutable(),
+                occurredAt: new DateTimeImmutable,
                 message: $message,
             );
-        
+
             BulkImportsOutboxMessage::query()->firstOrCreate(
                 ['message_id' => $messageId],
                 [
