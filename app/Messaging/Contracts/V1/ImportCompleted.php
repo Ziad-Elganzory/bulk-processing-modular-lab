@@ -13,7 +13,7 @@ final readonly class ImportCompleted implements MessageContract
     public function __construct(
         public string $importId,
         public string $status,
-        public int $totalRows,
+        public ?int $totalRows,
         public int $processedRows,
         public int $acceptedRows,
         public int $rejectedRows,
@@ -25,13 +25,22 @@ final readonly class ImportCompleted implements MessageContract
             throw new InvalidArgumentException('The [status] field has an unsupported value.');
         }
 
-        MessageData::assertInteger($this->totalRows, 'total_rows');
+        if ($this->totalRows === null) {
+            if (! in_array($this->status, ['failed', 'cancelled'], true)) {
+                throw new InvalidArgumentException(
+                    'A completed import must have a known total row count.',
+                );
+            }
+        } else {
+            MessageData::assertInteger($this->totalRows, 'total_rows');
+        }
+
         MessageData::assertInteger($this->processedRows, 'processed_rows');
         MessageData::assertInteger($this->acceptedRows, 'accepted_rows');
         MessageData::assertInteger($this->rejectedRows, 'rejected_rows');
         MessageData::assertNullableString($this->rejectedReportObjectKey, 'rejected_report_object_key');
 
-        if ($this->processedRows > $this->totalRows) {
+        if ($this->totalRows !== null && $this->processedRows > $this->totalRows) {
             throw new InvalidArgumentException('Processed rows cannot exceed total rows.');
         }
 
@@ -42,11 +51,14 @@ final readonly class ImportCompleted implements MessageContract
         if ($this->rejectedRows > 0 && $this->rejectedReportObjectKey === null) {
             throw new InvalidArgumentException('Rejected rows require a rejected report object key.');
         }
+
         if (
             in_array($this->status, ['completed', 'completed_with_errors'], true)
-            && $this->processedRows !== $this->totalRows
+            && ($this->totalRows === null || $this->processedRows !== $this->totalRows)
         ) {
-            throw new InvalidArgumentException('A completed import must process all rows.');
+            throw new InvalidArgumentException(
+                'A completed import must have a known total and process all rows.',
+            );
         }
 
         if ($this->status === 'completed' && $this->rejectedRows > 0) {
@@ -85,7 +97,7 @@ final readonly class ImportCompleted implements MessageContract
         return new self(
             importId: MessageData::requiredString($data, 'import_id'),
             status: $status,
-            totalRows: MessageData::requiredInt($data, 'total_rows'),
+            totalRows: MessageData::nullableInt($data, 'total_rows'),
             processedRows: MessageData::requiredInt($data, 'processed_rows'),
             acceptedRows: MessageData::requiredInt($data, 'accepted_rows'),
             rejectedRows: MessageData::requiredInt($data, 'rejected_rows'),

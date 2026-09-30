@@ -35,6 +35,28 @@ final class MessageData
     }
 
     /** @param array<string, mixed> $data */
+    public static function nullableInt(array $data, string $key, int $minimum = 0): ?int
+    {
+        if (! array_key_exists($key, $data)) {
+            throw new InvalidArgumentException("The [{$key}] field is required.");
+        }
+
+        $value = $data[$key];
+
+        if ($value === null) {
+            return null;
+        }
+
+        if (! is_int($value)) {
+            throw new InvalidArgumentException("The [{$key}] field must be an integer or null.");
+        }
+
+        self::assertInteger($value, $key, $minimum);
+
+        return $value;
+    }
+
+    /** @param array<string, mixed> $data */
     public static function nullableString(array $data, string $key): ?string
     {
         if (! array_key_exists($key, $data)) {
