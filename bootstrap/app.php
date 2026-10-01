@@ -1,11 +1,13 @@
 <?php
 
+use App\Console\Commands\ConsumeDashboardImportStatusUpdates;
 use App\Console\Commands\ConsumeFailedOrderChunks;
 use App\Console\Commands\ConsumeImportRequests;
 use App\Console\Commands\ConsumeOrderChunkResults;
 use App\Console\Commands\ConsumeOrderChunks;
 use App\Console\Commands\DeclareRabbitMqTopology;
 use App\Console\Commands\PublishBulkImportsOutbox;
+use App\Console\Commands\PublishDashboardOutbox;
 use App\Console\Commands\PublishOrdersOutbox;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -34,5 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ConsumeImportRequests::class,
         PublishBulkImportsOutbox::class,
         ConsumeOrderChunkResults::class,
+        ConsumeDashboardImportStatusUpdates::class,
+        PublishDashboardOutbox::class,
     ])
     ->create();

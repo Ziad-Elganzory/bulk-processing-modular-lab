@@ -9,13 +9,13 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('orders:outbox:publish')
-    ->everyMinute()
+    ->everyFiveSeconds()
     ->withoutOverlapping();
 
 Schedule::command('bulk-imports:outbox:publish')
-    ->everyMinute()
+    ->everyFiveSeconds()
     ->withoutOverlapping();
 
 Schedule::command('dashboard:outbox:publish')
-    ->everyMinute()
+    ->everyFiveSeconds()
     ->withoutOverlapping();
