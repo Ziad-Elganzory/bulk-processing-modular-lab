@@ -140,18 +140,6 @@ return [
             'auto_delete' => false,
         ],
 
-        // For Inspecting the events that are being published to RabbitMQ.
-        'orders.events.observer' => [
-            'type' => 'quorum',
-            'durable' => true,
-            'auto_delete' => false,
-        ],
-
-        'bulk-imports.events.observer' => [
-            'type' => 'quorum',
-            'durable' => true,
-            'auto_delete' => false,
-        ],
     ],
 
     'bindings' => [
@@ -263,24 +251,5 @@ return [
             'routing_key' => 'dashboard.import-status-updates.failed.processing-errors',
         ],
 
-        // For Inspecting the events that are being published to RabbitMQ.
-        [
-            'queue' => 'orders.events.observer',
-            'exchange' => 'bulk-processing.events',
-            'routing_key' => 'orders.chunk.#',
-        ],
-
-        // For Inspecting the events that are being published to RabbitMQ.
-        [
-            'queue' => 'bulk-imports.events.observer',
-            'exchange' => 'bulk-processing.events',
-            'routing_key' => 'bulk-import.progressed.v1',
-        ],
-
-        [
-            'queue' => 'bulk-imports.events.observer',
-            'exchange' => 'bulk-processing.events',
-            'routing_key' => 'bulk-import.completed.v1',
-        ],
     ],
 ];
