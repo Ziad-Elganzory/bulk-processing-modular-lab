@@ -15,3 +15,7 @@ Schedule::command('orders:outbox:publish')
 Schedule::command('bulk-imports:outbox:publish')
     ->everyMinute()
     ->withoutOverlapping();
+
+Schedule::command('dashboard:outbox:publish')
+    ->everyMinute()
+    ->withoutOverlapping();
