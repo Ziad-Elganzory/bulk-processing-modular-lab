@@ -112,6 +112,34 @@ return [
             'auto_delete' => false,
         ],
 
+        'dashboard.import-status-updates' => [
+            'type' => 'quorum',
+            'durable' => true,
+            'auto_delete' => false,
+            'arguments' => [
+                'x-delivery-limit' => 3,
+                'x-dead-letter-exchange' => 'bulk-processing.dead-letters',
+                'x-dead-letter-routing-key' => 'dashboard.import-status-updates.failed',
+            ],
+        ],
+
+        'dashboard.import-status-updates.failed' => [
+            'type' => 'quorum',
+            'durable' => true,
+            'auto_delete' => false,
+            'arguments' => [
+                'x-delivery-limit' => 3,
+                'x-dead-letter-exchange' => 'bulk-processing.dead-letters',
+                'x-dead-letter-routing-key' => 'dashboard.import-status-updates.failed.processing-errors',
+            ],
+        ],
+
+        'dashboard.import-status-updates.failed.processing-errors' => [
+            'type' => 'quorum',
+            'durable' => true,
+            'auto_delete' => false,
+        ],
+
         // For Inspecting the events that are being published to RabbitMQ.
         'orders.events.observer' => [
             'type' => 'quorum',
@@ -185,6 +213,48 @@ return [
             'queue' => 'bulk-imports.order-chunk-results.failed.processing-errors',
             'exchange' => 'bulk-processing.dead-letters',
             'routing_key' => 'bulk-imports.order-chunk-results.failed.processing-errors',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.events',
+            'routing_key' => 'bulk-import.progressed.v1',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.events',
+            'routing_key' => 'bulk-import.completed.v1',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.events',
+            'routing_key' => 'orders.chunk.committed.v1',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.events',
+            'routing_key' => 'orders.chunk.failed.v1',
+        ],
+        
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.commands',
+            'routing_key' => 'orders.chunk.requested.v1',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates.failed',
+            'exchange' => 'bulk-processing.dead-letters',
+            'routing_key' => 'dashboard.import-status-updates.failed',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates.failed.processing-errors',
+            'exchange' => 'bulk-processing.dead-letters',
+            'routing_key' => 'dashboard.import-status-updates.failed.processing-errors',
         ],
 
         // For Inspecting the events that are being published to RabbitMQ.
