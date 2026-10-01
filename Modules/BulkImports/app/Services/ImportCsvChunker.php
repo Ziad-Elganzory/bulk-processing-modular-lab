@@ -23,17 +23,6 @@ class ImportCsvChunker
     {
         $importRun = ImportRun::query()->findOrFail($importRunId);
 
-        if (in_array($importRun->status, ['failed', 'completed', 'completed_with_errors'], true)) {
-            return;
-        }
-
-        $importRun->forceFill([
-            'status' => 'processing',
-            'started_at' => $importRun->started_at ?? now(),
-            'failure_code' => null,
-            'failure_message' => null,
-        ])->save();
-
         $expectedHeaders = config('bulkimports.csv_headers');
         $chunkSize = (int) config('bulkimports.chunk_size');
 

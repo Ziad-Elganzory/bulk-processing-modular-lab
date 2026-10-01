@@ -7,6 +7,7 @@ use App\Messaging\Contracts\V1\AnalyticsChunkLoaded;
 use App\Messaging\Contracts\V1\ImportCompleted;
 use App\Messaging\Contracts\V1\ImportProgressed;
 use App\Messaging\Contracts\V1\ImportRequested;
+use App\Messaging\Contracts\V1\ImportStarted;
 use App\Messaging\Contracts\V1\OrderChunkRequested;
 use App\Messaging\Contracts\V1\OrdersChunkCommitted;
 use App\Messaging\Contracts\V1\OrdersChunkFailed;
@@ -81,6 +82,7 @@ final readonly class MessageEnvelope
 
         $message = match ($messageType) {
             ImportRequested::TYPE => ImportRequested::fromData($data),
+            ImportStarted::TYPE => ImportStarted::fromData($data),
             OrderChunkRequested::TYPE => OrderChunkRequested::fromData($data),
             OrdersChunkCommitted::TYPE => OrdersChunkCommitted::fromData($data),
             ImportProgressed::TYPE => ImportProgressed::fromData($data),

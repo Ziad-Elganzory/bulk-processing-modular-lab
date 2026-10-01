@@ -4,6 +4,7 @@ namespace Modules\BulkImports\Jobs;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Modules\BulkImports\Services\BeginImportProcessing;
 use Modules\BulkImports\Services\ImportCsvChunker;
 
 class ProcessImport implements ShouldQueue
@@ -14,8 +15,14 @@ class ProcessImport implements ShouldQueue
         public readonly int $importRunId,
     ) {}
 
-    public function handle(ImportCsvChunker $chunker): void
-    {
+    public function handle(
+        BeginImportProcessing $beginImportProcessing,
+        ImportCsvChunker $chunker,
+    ): void {
+        if (! $beginImportProcessing->begin($this->importRunId)) {
+            return;
+        }
+
         $chunker->process($this->importRunId);
     }
 }
