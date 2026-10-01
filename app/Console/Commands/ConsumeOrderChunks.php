@@ -62,6 +62,13 @@ class ConsumeOrderChunks extends Command
 
                     // Ack only after the handler's database transaction succeeds.
                     $channel->basic_ack($message->getDeliveryTag());
+
+                    // Delay the processing of the chunk to simulate a real-world scenario.
+                    $delaySeconds = (int) config('orders.demo_chunk_delay_seconds');
+
+                    if ($delaySeconds > 0) {
+                        sleep($delaySeconds);
+                    }
                 },
             );
 
