@@ -5,6 +5,7 @@ namespace Modules\Dashboard\Handlers;
 use App\Messaging\Contracts\MessageEnvelope;
 use App\Messaging\Contracts\V1\ImportCompleted;
 use App\Messaging\Contracts\V1\ImportProgressed;
+use App\Messaging\Contracts\V1\ImportStarted;
 use App\Messaging\Contracts\V1\OrderChunkRequested;
 use App\Messaging\Contracts\V1\OrdersChunkCommitted;
 use App\Messaging\Contracts\V1\OrdersChunkFailed;
@@ -21,7 +22,8 @@ class ImportStatusUpdateHandler
     {
         $message = $envelope->message;
 
-        if (! $message instanceof ImportProgressed
+        if (! $message instanceof ImportStarted
+            && ! $message instanceof ImportProgressed
             && ! $message instanceof ImportCompleted
             && ! $message instanceof OrderChunkRequested
             && ! $message instanceof OrdersChunkCommitted
@@ -59,7 +61,19 @@ class ImportStatusUpdateHandler
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($message instanceof ImportProgressed) {
+            if ($message instanceof ImportStarted) {
+                if (! in_array($import->status, [
+                    'completed',
+                    'completed_with_errors',
+                    'failed',
+                    'cancelled',
+                ], true)) {
+                    $import->forceFill([
+                        'status' => 'processing',
+                        'started_at' => $import->started_at ?? $envelope->occurredAt,
+                    ])->save();
+                }
+            } elseif ($message instanceof ImportProgressed) {
                 if (! in_array($import->status, [
                     'completed',
                     'completed_with_errors',

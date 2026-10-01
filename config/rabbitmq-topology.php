@@ -218,6 +218,12 @@ return [
         [
             'queue' => 'dashboard.import-status-updates',
             'exchange' => 'bulk-processing.events',
+            'routing_key' => 'bulk-import.started.v1',
+        ],
+
+        [
+            'queue' => 'dashboard.import-status-updates',
+            'exchange' => 'bulk-processing.events',
             'routing_key' => 'bulk-import.progressed.v1',
         ],
 
@@ -238,7 +244,7 @@ return [
             'exchange' => 'bulk-processing.events',
             'routing_key' => 'orders.chunk.failed.v1',
         ],
-        
+
         [
             'queue' => 'dashboard.import-status-updates',
             'exchange' => 'bulk-processing.commands',
